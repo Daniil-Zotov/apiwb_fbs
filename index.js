@@ -5,10 +5,11 @@ const fs = require("fs");
 
 // логирование консоли в debug.log
 const util = require('util');
-const log_file = fs.createWriteStream(__dirname + '/debug.log', {flags : 'w'});
+const log_file = fs.createWriteStream(__dirname + '/debug/'+Date.now()+'.log', {flags : 'w'});
 const log_stdout = process.stdout;
 
 console.log = function(d) { //
+
   log_file.write(util.format(d) + '\n');
   log_stdout.write(util.format(d) + '\n');
 };
@@ -48,9 +49,18 @@ async function getFBSorders() {
 // возвращает массив поставок
 async function getFBSsups() {
     try {
-      const response = await axios.get('/api/v3/supplies',{params: {limit: 1000,next: 46097591} });
-      console.log(response.data)
-      return response.data.supplies;
+      const response = await axios.get('/api/v3/supplies',{params: {limit: 1000,next: 0} });
+    //   console.log(response.data)
+    let sups = response.data.supplies;
+    let supsOnWB = {};
+        for (let i = 0; i < sups.length; i++) {
+            
+            if (sups[i].done == false) {
+                supsOnWB[sups[i].name] = sups[i].id   
+            }
+            // console.log(supsOnWB)
+        }
+      return supsOnWB;
   
     } catch (error) {
       if (error.response) { // get response with a status code not in range 2xx
@@ -66,7 +76,8 @@ async function getFBSsups() {
     }
   }
 
-  let sups = getFBSsups();
+//  let sups = getFBSsups();
+
 
 async function createSup(xx) {
     try {
@@ -113,29 +124,25 @@ async function dooo () {
     let orders = await getFBSorders();
   
     //создать маасив нужных поставок
-    let sups = await getFBSsups();
+    let supsOnWB = await getFBSsups();
+    let  sups = Object.keys(supsOnWB).map((key) => [key]);
 
-    let supsOnWB={}
     for (let i = 0; i < orders.length; i++) {
         const orderID = orders[i].id;
         const orderSKU = orders[i].skus[0];
         const xx = orderSKU[0]+orderSKU[1];
         if (sups.indexOf( xx ) == -1) {
             sups.push(xx);
-            // supsOnWB[xx] = await createSup(xx); //создать поставку и записать в обьект данные
+            supsOnWB[xx] = await createSup(xx); //создать поставку и записать в обьект данные
         }
         // await addOrderToSup(orderID,supsOnWB[xx]);
         console.log("id - " ,orderID, " - " ,orderSKU, " - " ,xx," - " , supsOnWB[xx] )
         
     }
 console.log(supsOnWB);
-
-
-
-
 }
 
-// dooo ();
+ dooo ();
 // createSup("me")
 // создать 3 
 
