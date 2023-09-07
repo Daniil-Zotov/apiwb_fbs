@@ -29,6 +29,7 @@ axios.defaults.headers.get["accept"] = "application/json";
 async function getFBSorders() {
   try {
     const response = await axios.get('/api/v3/orders/new');
+    // console.log(response.data.orders)
     return response.data.orders;
 
   } catch (error) {
@@ -45,7 +46,6 @@ async function getFBSorders() {
   }
 }
 
-
 // возвращает массив поставок
 async function getFBSsups() {
     try {
@@ -58,8 +58,8 @@ async function getFBSsups() {
             if (sups[i].done == false) {
                 supsOnWB[sups[i].name] = sups[i].id   
             }
-            // console.log(supsOnWB)
         }
+        // console.log(supsOnWB)
       return supsOnWB;
   
     } catch (error) {
@@ -72,7 +72,7 @@ async function getFBSsups() {
       } else { 
         console.log('что-то сломалось - ', error.message);
       }
-      // console.log(error.config);
+      console.log(error.config);
     }
   }
 
@@ -104,8 +104,6 @@ async function addOrderToSup(id,supsOnWB) {
         try {
             let path = "/api/v3/supplies/"+supsOnWB+"/orders/"+id
             const response = await axios.patch(path);
-            
-                  
           } catch (error) {
             if (error.response) { // get response with a status code not in range 2xx
               console.log(error.response);
@@ -122,11 +120,11 @@ async function addOrderToSup(id,supsOnWB) {
 
 async function dooo () {
     let orders = await getFBSorders();
-  
+    if (orders.length == 0) {console.log("нет новых сборочных заданий");return;}
     //создать маасив нужных поставок
     let supsOnWB = await getFBSsups();
-    let  sups = Object.keys(supsOnWB).map((key) => [key]);
-
+    let  sups = Object.keys(supsOnWB).map((key) =>key);
+// console.log(sups,supsOnWB)
     for (let i = 0; i < orders.length; i++) {
         const orderID = orders[i].id;
         const orderSKU = orders[i].skus[0];
@@ -135,11 +133,11 @@ async function dooo () {
             sups.push(xx);
             supsOnWB[xx] = await createSup(xx); //создать поставку и записать в обьект данные
         }
-        // await addOrderToSup(orderID,supsOnWB[xx]);
-        console.log("id - " ,orderID, " - " ,orderSKU, " - " ,xx," - " , supsOnWB[xx] )
+        await addOrderToSup(orderID,supsOnWB[xx]);
+        console.log("добавили сборочное задание: id - " +orderID+ " - " +orderSKU+ " - "+xx+" - " + supsOnWB[xx] )
         
     }
-console.log(supsOnWB);
+// console.log(supsOnWB);
 }
 
  dooo ();
