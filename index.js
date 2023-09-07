@@ -5,12 +5,12 @@ const fs = require("fs");
 
 // логирование консоли в debug.log
 const util = require('util');
-const log_file = fs.createWriteStream(__dirname + '/debug/'+Date.now()+'.log', {flags : 'w'});
+const log_file = fs.createWriteStream(__dirname + '/debug/'+'debug.log', {flags : 'a'});
 const log_stdout = process.stdout;
 
 console.log = function(d) { //
 
-  log_file.write(util.format(d) + '\n');
+  log_file.write(new Date().toISOString().replace(/T/, '-').replace(/\..+/, '').replace(/:/, '-').replace(/:/, '-')+": "+util.format(d) + '\n');
   log_stdout.write(util.format(d) + '\n');
 };
 //---------------------------------------------
