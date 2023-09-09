@@ -82,7 +82,7 @@ async function getFBSsups() {
 async function createSup(xx) {
     try {
         const response = await axios.post('/api/v3/supplies',{"name":xx});
-        console.log("создалась поставка - ",xx," - ", response.data.id)
+        console.log("создалась поставка - "+xx+" - "+ response.data.id)
         return response.data.id;
     
       } catch (error) {

@@ -6,34 +6,24 @@ const imgToPDF = require("image-to-pdf");
 
 // логирование консоли в debug.log
 const util = require("util");
-// new Date().toISOString().replace(/T/, '-').replace(/\..+/, '').replace(/:/, '-').replace(/:/, '-')
-const log_file = fs.createWriteStream(__dirname + "/debug/" + "debug2.log", {
-    flags: "a",
-});
+
+const token = fs.readFileSync("./token.txt", { encoding: "utf8", flag: "r" });
+const serverPath = "\\server\\_Baza архив\\wb_";
+const dateFolder = new Date()
+    .toISOString()
+    .replace(/T/, "-")
+    .replace(/\..+/, "")
+    .replace(/:/, "-")
+    .replace(/:/, "-");
+
+const log_file = fs.createWriteStream(__dirname + "/debug/" + "debug2.log", {flags: "a",});
 const log_stdout = process.stdout;
 
 console.log = function (d) {
-    //
-
-    log_file.write(
-        new Date()
-            .toISOString()
-            .replace(/T/, "-")
-            .replace(/\..+/, "")
-            .replace(/:/, "-")
-            .replace(/:/, "-") +
-            ": " +
-            util.format(d) +
-            "\n"
-    );
+    log_file.write(dateFolder + ": " + util.format(d) + "\n");
     log_stdout.write(util.format(d) + "\n");
 };
 //---------------------------------------------
-
-let token = fs.readFileSync("./token.txt", { encoding: "utf8", flag: "r" });
-let serverPath = "\\server\\_Baza архив\\wb_\\";
-let dateFolder = new Date().toISOString().replace(/T/, "-").replace(/\..+/, "").replace(/:/, "-").replace(/:/, "-"); 
-
 
 axios.defaults.baseURL = "https://suppliers-api.wildberries.ru";
 axios.defaults.headers.common["Authorization"] = token;
@@ -121,66 +111,57 @@ async function getFBSsups() {
     }
 }
 
-async function dooo() {
-    let supsOnWB = await getFBSsups();
 
-    // let ordersPP = await getFBSordersFromSup(supsOnWB.pp);
-    // let ordersP2 = await getFBSordersFromSup(supsOnWB.p2)
-    // let ordersPS = await getFBSordersFromSup(supsOnWB.ps)
-    let serverPath = "\\server\\_Baza архив\\wb_\\";
-    let dateFolder = new Date().toISOString().replace(/T/, "-").replace(/\..+/, "").replace(/:/, "-").replace(/:/, "-"); 
-    // let pathPP = "\\server\\fbs\\" + dateFolder + "\\pp";
-    // let pathP2 = "\\server\\fbs\\" + dateFolder + "\\p2";
-    // let pathPS = "\\server\\fbs\\" + dateFolder + "\\ps";
-    // fs.mkdirSync(pathPP + "\\шк", { recursive: true });
-    // fs.mkdirSync(pathP2 + "\\шк", { recursive: true });
-    // fs.mkdirSync(pathPS + "\\шк", { recursive: true });
-
-    for (let xx of Object.keys(supsOnWB)) {
-        await foo (xx,supsOnWB[key],dateFolder);
-    }
-}
-    //перенести вверх
-async function foo(xx,supsID) {
-    const orders = await getFBSordersFromSup(supsID);    //получили массив заказов из поставки
-    const path = "\\server\\fbs\\" + dateFolder + "\\"+xx;
+async function foo(xx, supsID) {
+    const orders = await getFBSordersFromSup(supsID); //получили массив заказов из поставки
+    const path = "\\server\\fbs\\" + dateFolder + "\\" + xx;
     fs.mkdirSync(path + "\\шк", { recursive: true }); //создали папки
 
-    // сохраняем стикеры 
+    // сохраняем стикеры
     const pagesObj = {};
     const partBA = [];
-    const skus =[];
+    const skus = [];
     for (let i = 0; i < orders.length; i++) {
         const sticker = await getBarCode(orders[i].id);
         partBA[i] = sticker.partB + "-" + sticker.partA;
-        pagesObj[partBA[i]] = Buffer.from(sticker.file, "base64");
-        skus[i]=orders[i].skus[0]
-        pagesObj[skus[i]] = Buffer.from(sticker.file, "base64");
-        fs.copyFileSync(
-            serverPath + xx + "\\" + skus[i] + ".pdf",
-            path + "\\" + partBA[i] + "-" + ordersPP[i].skus[0] + ".pdf"
-        );
+        skus[i] = orders[i].skus[0];
+        pagesObj[partBA[i]] = [Buffer.from(sticker.file, "base64"), skus[i]];
+    
     }
-
-// сортируемм порядок стикеров
-    if (xx="p2") { //sort p2
-
-        
-    } 
-    else {
-        partBA.sort();
-
-    }
-
+    partBA.sort();
     const pages = [];
     for (let i = 0; i < partBA.length; i++) {
-        pages[i] = pagesObj[partBA[i]];
+        if (xx == "pp") {
+            fs.copyFileSync(
+                serverPath + xx + "\\" + pagesObj[partBA[i]][1] + ".pdf",
+                path + "\\" + partBA[i] + "-" + pagesObj[partBA[i]][1] + ".pdf"
+            );
+            console.log("скопирован файл " + partBA[i] + "-" + pagesObj[partBA[i]][1] + ".pdf")
+        }
+        if ((xx == "p2") || (xx =="ps")) {
+            fs.copyFileSync(
+                serverPath + xx + "\\" + pagesObj[partBA[i]][1] + ".tif",
+                path + "\\" + partBA[i] + "-" + pagesObj[partBA[i]][1] + ".tif"
+            );
+            console.log("скопирован файл " + partBA[i] + "-" + pagesObj[partBA[i]][1] + ".tif")
+        }
+        pages[i] = pagesObj[partBA[i]][0];
     }
+
     imgToPDF(pages, [600, 400]).pipe(
-        fs.createWriteStream(path + "\\шк\\шк-"+xx+"-"+ pages.length + " шт.pdf")
+        fs.createWriteStream(
+            path + "\\шк\\шк - " + xx + " - " +supsID + " - " + pages.length + " шт.pdf"
+        )
     );
+    console.log("сохранили шк заданий " + xx+"-"+supsID+ "-" + pages.length + " шт.pdf")
+}
 
-
+async function dooo() {
+    let supsOnWB = await getFBSsups();
+    for (let xx of Object.keys(supsOnWB)) {
+      console.log("работаем над поставкой - " + xx+"-"+supsOnWB[xx])
+        await foo(xx, supsOnWB[xx]);
+    }
 }
 
 dooo();
