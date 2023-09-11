@@ -114,8 +114,8 @@ async function getFBSsups() {
 
 async function foo(xx, supsID) {
     const orders = await getFBSordersFromSup(supsID); //получили массив заказов из поставки
-    const path = "\\server\\fbs\\" + dateFolder + "\\" + xx;
-    fs.mkdirSync(path + "\\шк", { recursive: true }); //создали папки
+    const path = "\\server\\fbs\\" + dateFolder + "\\";
+    fs.mkdirSync(path + xx, { recursive: true }); //создали папки
 
     // сохраняем стикеры
     const pagesObj = {};
@@ -126,6 +126,7 @@ async function foo(xx, supsID) {
         partBA[i] = sticker.partB + "-" + sticker.partA;
         skus[i] = orders[i].skus[0];
         pagesObj[partBA[i]] = [Buffer.from(sticker.file, "base64"), skus[i]];
+        fs.appendFileSync(path+"лист подбора.txt", xx+";"+skus[i]+";"+sticker.partB+";"+partBA[i]+"\n")
     
     }
     partBA.sort();
@@ -134,14 +135,21 @@ async function foo(xx, supsID) {
         if (xx == "pp") {
             fs.copyFileSync(
                 serverPath + xx + "\\" + pagesObj[partBA[i]][1] + ".pdf",
-                path + "\\" + partBA[i] + "-" + pagesObj[partBA[i]][1] + ".pdf"
+                path +xx + "\\" + partBA[i] + "-" + pagesObj[partBA[i]][1] + ".pdf"
             );
             console.log("скопирован файл " + partBA[i] + "-" + pagesObj[partBA[i]][1] + ".pdf")
         }
-        if ((xx == "p2") || (xx =="ps")) {
+        if (xx == "p2") {
             fs.copyFileSync(
                 serverPath + xx + "\\" + pagesObj[partBA[i]][1] + ".tif",
-                path + "\\" + partBA[i] + "-" + pagesObj[partBA[i]][1] + ".tif"
+                path +xx+ "\\" + partBA[i] + "-" + pagesObj[partBA[i]][1] + ".tif"
+            );
+            console.log("скопирован файл " + partBA[i] + "-" + pagesObj[partBA[i]][1] + ".tif")
+        }
+        if (xx =="ps") {
+            fs.copyFileSync(
+                serverPath + xx + "\\" + pagesObj[partBA[i]][1] + ".tif",
+                path + xx+"\\" + pagesObj[partBA[i]][1] +"-"+ partBA[i] + ".tif"
             );
             console.log("скопирован файл " + partBA[i] + "-" + pagesObj[partBA[i]][1] + ".tif")
         }
@@ -150,7 +158,7 @@ async function foo(xx, supsID) {
 
     imgToPDF(pages, [600, 400]).pipe(
         fs.createWriteStream(
-            path + "\\шк\\шк - " + xx + " - " +supsID + " - " + pages.length + " шт.pdf"
+            path + xx + " - " +supsID + " - " + pages.length + " шт.pdf"
         )
     );
     console.log("сохранили шк заданий " + xx+"-"+supsID+ "-" + pages.length + " шт.pdf")
