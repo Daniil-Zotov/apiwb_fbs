@@ -15,6 +15,7 @@ const dateFolder = new Date()
     .replace(/\..+/, "")
     .replace(/:/, "-")
     .replace(/:/, "-");
+const path = "\\server\\fbs\\" + dateFolder + "\\";
 
 const log_file = fs.createWriteStream(__dirname + "/debug/" + "debug2.log", {flags: "a",});
 const log_stdout = process.stdout;
@@ -78,6 +79,26 @@ async function getBarCode(id) {
         console.log(error);
     }
 }
+//QR поставки
+async function getSupQR(supID) {
+    try {
+        const response = await axios.get("/api/v3/supplies/"+supID+"/barcode?type=png");
+        return response.data.file;
+    } catch (error) {
+        if (error.response) {
+            // get response with a status code not in range 2xx
+            console.log(error.response);
+            console.log("ошибка в ответе - " + error.response.status);
+            // console.log(error.response.headers);
+        } else if (error.request) {
+            // no response
+            console.log("нет ответа, ошибка запроса - " + error.message);
+        } else {
+            console.log("что-то сломалось - ", error.message);
+        }
+        console.log(error);
+    }
+}
 
 // возвращает массив поставок
 async function getFBSsups() {
@@ -111,7 +132,25 @@ async function getFBSsups() {
     }
 }
 
-
+//передача поставки в доставку
+async function patchSupsOnDelivery(supsOnWB) {
+    try {
+        let path = "/api/v3/supplies/"+supsOnWB+"/deliver";
+        const response = await axios.patch(path);
+      } catch (error) {
+        if (error.response) { // get response with a status code not in range 2xx
+          console.log(error.response);
+          console.log("ошибка в ответе - " + error.response.status);
+          // console.log(error.response.headers);
+        } else if (error.request) { // no response
+          console.log("нет ответа, ошибка запроса - "+error.message);
+        } else { 
+          console.log('что-то сломалось - ', error.message);
+        }
+        // console.log(error.config);
+      }
+    }
+// основное тело работа с заданиями
 async function foo(xx, supsID) {
     const orders = await getFBSordersFromSup(supsID); //получили массив заказов из поставки
     const path = "\\server\\fbs\\" + dateFolder + "\\";
@@ -164,12 +203,21 @@ async function foo(xx, supsID) {
     console.log("сохранили шк заданий " + xx+"-"+supsID+ "-" + pages.length + " шт.pdf")
 }
 
+// вводная часть и основное тело работы с поставками (передача в доставку и печать QR)
 async function dooo() {
-    let supsOnWB = await getFBSsups();
+    const supsOnWB = await getFBSsups();
+    const pagesQR = [];
     for (let xx of Object.keys(supsOnWB)) {
       console.log("работаем над поставкой - " + xx+"-"+supsOnWB[xx])
         await foo(xx, supsOnWB[xx]);
+
+       await patchSupsOnDelivery (supsOnWB[xx])         // закрыть поставку
+       pagesQR.push(await getSupQR(supsOnWB[xx]))
     }
+    //сохраняем QR поставок
+    imgToPDF(pagesQR, [600, 400]).pipe(fs.createWriteStream(path + "QR поставок.pdf"));
 }
+
+
 
 dooo();
