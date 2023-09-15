@@ -1,6 +1,6 @@
 const axios = require("axios");
 const fs = require("fs");
-const path = require("path");
+// const path = require("path");
 const FormData = require("form-data");
 const imgToPDF = require("image-to-pdf");
 
@@ -83,7 +83,7 @@ async function getBarCode(id) {
 async function getSupQR(supID) {
     try {
         const response = await axios.get("/api/v3/supplies/"+supID+"/barcode?type=png");
-        return response.data.file;
+        return "data:image/png;base64,"+response.data.file;
     } catch (error) {
         if (error.response) {
             // get response with a status code not in range 2xx
@@ -211,11 +211,15 @@ async function dooo() {
       console.log("работаем над поставкой - " + xx+"-"+supsOnWB[xx])
         await foo(xx, supsOnWB[xx]);
 
-       await patchSupsOnDelivery (supsOnWB[xx])         // закрыть поставку
-       pagesQR.push(await getSupQR(supsOnWB[xx]))
+       await patchSupsOnDelivery (supsOnWB[xx]);         // закрыть поставку
+       console.log("Передали поставку в доставку"+supsOnWB[xx]);
+
+       pagesQR.push(await getSupQR(supsOnWB[xx]));
+       console.log("Передали поставку в доставку"+supsOnWB[xx]);
     }
     //сохраняем QR поставок
     imgToPDF(pagesQR, [600, 400]).pipe(fs.createWriteStream(path + "QR поставок.pdf"));
+    console.log("сохранили QR поставок по адресу "+path + "QR поставок.pdf");
 }
 
 
